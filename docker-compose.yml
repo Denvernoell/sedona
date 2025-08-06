@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Apache Polaris - Iceberg REST Catalog
+  polaris:
+    image: apache/polaris:latest
+    ports:
+      - "8181:8181"  # Polaris REST API
+    environment:
+      - POLARIS_BOOTSTRAP_REALM=default-realm
+      - POLARIS_BOOTSTRAP_CLIENT_ID=polaris-client
+      - POLARIS_BOOTSTRAP_CLIENT_SECRET=polaris-secret
+      - POLARIS_METASTORE_MANAGER_TYPE=in-memory
+    volumes:
+      - polaris-data:/app/data
+    networks:
+      - iceberg-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/management/v1/config"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Iceberg service with Polaris catalog support
+  iceberg:
+    build: .
+    ports:
+      - "8080:8080"  # Iceberg service port
+    volumes:
+      - ./data:/opt/shared-data
+      - iceberg-warehouse:/tmp/warehouse
+    environment:
+      - ICEBERG_WAREHOUSE_PATH=/tmp/warehouse
+      - POLARIS_URI=http://polaris:8181
+      - JAVA_OPTS=-Xmx1g
+    networks:
+      - iceberg-network
+    depends_on:
+      polaris:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/opt/iceberg/health-check.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: MinIO for S3-compatible object storage
+  # minio:
+  #   image: minio/minio:latest
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   environment:
+  #     - MINIO_ROOT_USER=minioadmin
+  #     - MINIO_ROOT_PASSWORD=minioadmin
+  #   volumes:
+  #     - minio-data:/data
+  #   command: server /data --console-address ":9001"
+  #   networks:
+  #     - polars-network
+
+  # # Optional: DuckDB for analytical queries (lightweight alternative to Spark)
+  # duckdb:
+  #   image: python:3.11-slim
+  #   volumes:
+  #     - ./data:/data
+  #     - duckdb-data:/opt/duckdb
+  #   working_dir: /data
+  #   command: >
+  #     sh -c "pip install duckdb && python -c 'import duckdb; conn = duckdb.connect(\"/opt/duckdb/spatial.db\"); conn.install_extension(\"spatial\"); conn.load_extension(\"spatial\"); print(\"DuckDB with spatial extension ready\")' && tail -f /dev/null"
+  #   networks:
+  #     - polars-network
+
+volumes:
+  iceberg-warehouse:
+  polaris-data:
+
+networks:
+  iceberg-network:
+    driver: bridge
