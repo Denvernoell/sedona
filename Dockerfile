@@ -2,9 +2,9 @@
 FROM openjdk:11-jre-slim
 
 # Set environment variables
-ENV ICEBERG_VERSION=1.4.3
+ENV ICEBERG_VERSION=1.9.2
 ENV HADOOP_VERSION=3.3.6
-ENV AWS_SDK_VERSION=1.12.262
+ENV AWS_SDK_VERSION=1.12.788
 
 # Switch to root user to install packages
 USER root
@@ -27,8 +27,8 @@ RUN wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-core/${ICEBER
 RUN wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-api/${ICEBERG_VERSION}/iceberg-api-${ICEBERG_VERSION}.jar
 RUN wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-common/${ICEBERG_VERSION}/iceberg-common-${ICEBERG_VERSION}.jar
 
-# Download Iceberg Hadoop integration
-RUN wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-hadoop/${ICEBERG_VERSION}/iceberg-hadoop-${ICEBERG_VERSION}.jar
+# Download Iceberg MapReduce/Hadoop integration (replaces iceberg-hadoop)
+RUN wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-mr/${ICEBERG_VERSION}/iceberg-mr-${ICEBERG_VERSION}.jar
 
 # Download Iceberg AWS integration (for S3 support)
 RUN wget https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws/${ICEBERG_VERSION}/iceberg-aws-${ICEBERG_VERSION}.jar
